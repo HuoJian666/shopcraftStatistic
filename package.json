@@ -1,0 +1,14 @@
+{
+  "name": "shopcraft-statistic",
+  "version": "1.0.0",
+  "description": "OpenClaw skill for ShopCraft product statistics",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0",
+    "exceljs": "^4.4.0"
+  }
+}
