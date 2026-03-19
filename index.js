@@ -15,7 +15,7 @@ const BASE_URLS = {
 
 const CONFIG = {
   baseURL: process.env.SHOPCRAFT_API_BASE_URL || BASE_URLS[ENV] || BASE_URLS.prod,
-  apiKey: process.env.SHOPCRAFT_API_KEY || "",
+  outputDir: process.env.SHOPCRAFT_OUTPUT_DIR || "",
   timeout: 15000,
   maxResults: 20,
 };
@@ -27,7 +27,6 @@ const client = axios.create({
   timeout: CONFIG.timeout,
   headers: {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${CONFIG.apiKey}`,
   },
 });
 
@@ -200,7 +199,7 @@ async function generateVisitSheet(params = {}) {
 
   // 保存文件
   const today = new Date().toISOString().slice(0, 10);
-  const outputDir = params.outputDir || process.cwd();
+  const outputDir = params.outputDir || CONFIG.outputDir || process.cwd();
   const filePath = path.join(outputDir, `visit-sheet-${today}.xlsx`);
   await workbook.xlsx.writeFile(filePath);
 

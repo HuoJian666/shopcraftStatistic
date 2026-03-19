@@ -8,7 +8,6 @@ author: lensung
 requires:
   env:
     - SHOPCRAFT_ENV
-    - SHOPCRAFT_API_KEY
   runtime: node
 ---
 
@@ -18,18 +17,24 @@ requires:
 
 ## 快速开始
 
-### 1. 安装依赖
+### 1. 配置文件输出目录
 
-```bash
-npm install
-```
-
-### 2. 配置环境变量
-
-复制 `.env.example` 为 `.env`，并填入真实配置：
+首先配置生成文件（如回访表格）的存放路径。复制 `.env.example` 为 `.env`，并设置 `SHOPCRAFT_OUTPUT_DIR`：
 
 ```bash
 cp .env.example .env
+```
+
+编辑 `.env`，填入你希望文件生成到的目录路径：
+
+```env
+SHOPCRAFT_OUTPUT_DIR=D:\output
+```
+
+### 2. 安装依赖
+
+```bash
+npm install
 ```
 
 ### 3. 运行
@@ -191,7 +196,7 @@ node index.js generateVisitSheet '{"timeRangeType":"LAST_7_DAYS","outputDir":"D:
 | ---------------------- | ---- | -------------------------------------------------------------------- |
 | SHOPCRAFT_ENV          | 否   | 环境切换：`dev`（测试环境）或 `prod`（正式环境），默认 `prod`            |
 | SHOPCRAFT_API_BASE_URL | 否   | 自定义 API 基础地址（设置后覆盖 SHOPCRAFT_ENV 对应的默认地址）          |
-| SHOPCRAFT_API_KEY      | 否   | 店小匠 API 认证密钥                                                   |
+| SHOPCRAFT_OUTPUT_DIR   | 否   | 生成文件的默认输出目录（调用时传 `outputDir` 参数可覆盖此配置）          |
 
 **内置环境地址：**
 
