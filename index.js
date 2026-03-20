@@ -502,6 +502,136 @@ async function queryUserStatistics(params = {}) {
   };
 }
 
+// ======================== User Stat Sheet ========================
+
+const USER_STAT_COLUMNS = [
+  { header: "序号", width: 8 },
+  { header: "用户ID", width: 20 },
+  { header: "用户昵称", width: 22 },
+  { header: "用户创建时间", width: 22 },
+  { header: "铺货任务数量", width: 14 },
+  { header: "铺货成功次数", width: 14 },
+  { header: "铺货失败次数", width: 14 },
+  { header: "新绑定Shopee店铺数", width: 20 },
+  { header: "新绑定TikTok店铺数", width: 20 },
+  { header: "新绑定店铺总数量", width: 18 },
+  { header: "新建商品数量", width: 14 },
+  { header: "平台订单数量", width: 14 },
+];
+
+function createUserStatSheet(workbook) {
+  const sheet = workbook.addWorksheet("客户授权明细");
+  const headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2E75B6" } };
+  const whiteFont = { bold: true, color: { argb: "FFFFFFFF" } };
+  const thinBorder = {
+    top: { style: "thin" },
+    bottom: { style: "thin" },
+    left: { style: "thin" },
+    right: { style: "thin" },
+  };
+
+  const headerRow = sheet.getRow(1);
+  USER_STAT_COLUMNS.forEach((col, i) => {
+    const cell = headerRow.getCell(i + 1);
+    cell.value = col.header;
+    cell.font = whiteFont;
+    cell.fill = headerFill;
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.border = thinBorder;
+    sheet.getColumn(i + 1).width = col.width;
+  });
+  headerRow.height = 22;
+
+  return sheet;
+}
+
+/**
+ * 生成客户授权明细表格（Excel）
+ * 调用 /statistics/user-statistics 接口，生成按用户维度的详细统计表格
+ *
+ * 两种传参方式（互斥，不要同时传）：
+ *   方式一：startTime + endTime  自定义时间范围
+ *   方式二：timeRangeType        快速选择（LAST_WEEK | LAST_7_DAYS | LAST_30_DAYS）
+ *
+ * @param {object} params
+ * @param {string} [params.startTime]     - 查询开始时间
+ * @param {string} [params.endTime]       - 查询结束时间
+ * @param {string} [params.timeRangeType] - 时间范围类型
+ * @param {string} [params.outputDir]     - 输出目录
+ * @param {string} [params.fileName]      - 文件名，默认 user-statistics-YYYY-MM-DD.xlsx
+ */
+async function generateUserStatSheet(params = {}) {
+  const hasCustomRange = params.startTime || params.endTime;
+  const hasPresetRange = params.timeRangeType;
+  if (hasCustomRange && hasPresetRange) {
+    return {
+      success: false,
+      code: 400,
+      msg: "startTime/endTime 与 timeRangeType 互斥，请只选择一种传参方式",
+      data: null,
+    };
+  }
+
+  const query = {};
+  if (params.startTime) query.startTime = params.startTime;
+  if (params.endTime) query.endTime = params.endTime;
+  if (params.timeRangeType) query.timeRangeType = params.timeRangeType;
+
+  const res = await request("get", "/statistics/user-statistics", query);
+  if (!res.success) {
+    return { success: false, code: res.code, msg: res.msg, data: null };
+  }
+
+  const list = res.data || [];
+  if (list.length === 0) {
+    return { success: true, code: 200, msg: "查询结果为空，无需生成表格", data: null };
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = createUserStatSheet(workbook);
+
+  const thinBorder = {
+    top: { style: "thin" },
+    bottom: { style: "thin" },
+    left: { style: "thin" },
+    right: { style: "thin" },
+  };
+
+  list.forEach((item, idx) => {
+    const row = sheet.addRow([
+      idx + 1,
+      item.userId || "",
+      item.userNickName || "",
+      item.userCreateTime || "",
+      item.distributeTaskCount || 0,
+      item.distributeSuccessCount || 0,
+      item.distributeFailCount || 0,
+      item.newShopeeShops || 0,
+      item.newTiktokShops || 0,
+      item.newTotalShops || 0,
+      item.newProducts || 0,
+      item.platformOrderCount || 0,
+    ]);
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = thinBorder;
+    });
+  });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const outputDir = params.outputDir || CONFIG.outputDir || process.cwd();
+  const fileName = params.fileName || `user-statistics-${today}.xlsx`;
+  const filePath = path.join(outputDir, fileName);
+  await workbook.xlsx.writeFile(filePath);
+
+  return {
+    success: true,
+    code: 200,
+    msg: `客户授权明细表格已生成，共 ${list.length} 条记录`,
+    data: { filePath, count: list.length },
+  };
+}
+
 // ======================== Action Registry ========================
 
 const actions = {
@@ -510,6 +640,7 @@ const actions = {
   querySystemStatistics,
   generateWeeklyStatSheet,
   queryUserStatistics,
+  generateUserStatSheet,
 };
 
 // ======================== CLI Router ========================

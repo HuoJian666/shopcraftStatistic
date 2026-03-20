@@ -2,8 +2,8 @@
 name: shopcraft-statistic
 description: >
   店小匠产品统计数据查询技能。支持查询系统统计数据、按用户维度详细统计（客户授权明细）、
-  新增用户（存在店铺绑定）统计数据，生成每周数据统计 Excel 表格，以及生成绑店客户回访 Excel 表格。
-  可按时间范围筛选，支持自定义起止时间或快速选择（上周、近7天、近30天）。
+  新增用户（存在店铺绑定）统计数据，生成每周数据统计 Excel 表格、客户授权明细 Excel 表格，
+  以及生成绑店客户回访 Excel 表格。可按时间范围筛选，支持自定义起止时间或快速选择（上周、近7天、近30天）。
 version: 1.0.0
 author: lensung
 requires:
@@ -351,6 +351,84 @@ node index.js querySystemStatistics '{"timeRangeType":"LAST_WEEK"}'
     "distributeSuccess7Days": 320,
     "distributeFail7Days": 15,
     "orders7Days": 188
+  }
+}
+```
+
+---
+
+### generateUserStatSheet
+
+生成客户授权明细 Excel 表格。调用 `/statistics/user-statistics` 接口获取按用户维度的详细统计数据，生成 `.xlsx` 文件，每个用户一行。
+
+**接口：** `GET /statistics/user-statistics`
+
+**生成的表格列：**
+
+| 列 | 表头               | 数据来源                |
+|----|--------------------|------------------------|
+| A  | 序号               | 自动递增                |
+| B  | 用户ID             | userId                 |
+| C  | 用户昵称           | userNickName           |
+| D  | 用户创建时间       | userCreateTime         |
+| E  | 铺货任务数量       | distributeTaskCount    |
+| F  | 铺货成功次数       | distributeSuccessCount |
+| G  | 铺货失败次数       | distributeFailCount    |
+| H  | 新绑定Shopee店铺数 | newShopeeShops         |
+| I  | 新绑定TikTok店铺数 | newTiktokShops         |
+| J  | 新绑定店铺总数量   | newTotalShops          |
+| K  | 新建商品数量       | newProducts            |
+| L  | 平台订单数量       | platformOrderCount     |
+
+**参数（两种传参方式互斥，不要同时传）：**
+
+方式一：自定义时间范围
+
+| 参数名    | 类型   | 说明                                       |
+| --------- | ------ | ------------------------------------------ |
+| startTime | string | 查询开始时间（用于SQL 2和SQL 3的动态时间范围） |
+| endTime   | string | 查询结束时间（用于SQL 2和SQL 3的动态时间范围） |
+
+方式二：快速选择时间范围
+
+| 参数名        | 类型   | 说明                                                                          |
+| ------------- | ------ | ----------------------------------------------------------------------------- |
+| timeRangeType | string | 可选值：`LAST_WEEK`（上周）、`LAST_7_DAYS`（近7天）、`LAST_30_DAYS`（近30天）   |
+
+> 注意：`startTime`/`endTime` 与 `timeRangeType` 互斥，只能选择其中一种方式传参。
+
+其他参数：
+
+| 参数名    | 类型   | 说明                                                            |
+| --------- | ------ | --------------------------------------------------------------- |
+| outputDir | string | 输出目录，默认使用环境变量或当前工作目录                           |
+| fileName  | string | 文件名，默认 `user-statistics-YYYY-MM-DD.xlsx`                   |
+
+**调用示例：**
+
+```bash
+# 上周客户授权明细
+node index.js generateUserStatSheet '{"timeRangeType":"LAST_WEEK"}'
+
+# 自定义时间范围
+node index.js generateUserStatSheet '{"startTime":"2026-03-10","endTime":"2026-03-16"}'
+
+# 指定输出目录
+node index.js generateUserStatSheet '{"timeRangeType":"LAST_WEEK","outputDir":"D:\\output"}'
+```
+
+**输出文件：** `user-statistics-YYYY-MM-DD.xlsx`（以生成当天日期命名，可通过 `fileName` 参数自定义）
+
+**返回示例：**
+
+```json
+{
+  "success": true,
+  "code": 200,
+  "msg": "客户授权明细表格已生成，共 22 条记录",
+  "data": {
+    "filePath": "D:\\output\\user-statistics-2026-03-20.xlsx",
+    "count": 22
   }
 }
 ```
