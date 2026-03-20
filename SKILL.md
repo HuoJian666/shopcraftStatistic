@@ -1,8 +1,9 @@
 ---
 name: shopcraft-statistic
 description: >
-  店小匠产品统计数据查询技能。支持查询新增用户（存在店铺绑定）统计数据，
-  以及生成绑店客户回访 Excel 表格。可按时间范围筛选，支持自定义起止时间或快速选择（上周、近7天、近30天）。
+  店小匠产品统计数据查询技能。支持查询系统统计数据、新增用户（存在店铺绑定）统计数据，
+  生成每周数据统计 Excel 表格，以及生成绑店客户回访 Excel 表格。
+  可按时间范围筛选，支持自定义起止时间或快速选择（上周、近7天、近30天）。
 version: 1.0.0
 author: lensung
 requires:
@@ -186,6 +187,170 @@ node index.js generateVisitSheet '{"timeRangeType":"LAST_7_DAYS","outputDir":"D:
   "data": {
     "filePath": "E:\\workSpace\\visit-sheet-2026-03-19.xlsx",
     "count": 22
+  }
+}
+```
+
+---
+
+### generateWeeklyStatSheet
+
+生成每周数据统计 Excel 表格。调用 `/statistics/system-statistics` 接口获取系统统计数据，自动计算衍生指标，生成/追加一行数据到 `.xlsx` 文件。如果目标文件已存在，会在已有数据下方追加新行，适合每周持续维护同一份统计表。
+
+**接口：** `GET /statistics/system-statistics`
+
+**生成的表格列：**
+
+| 列 | 表头             | 数据来源                                      |
+|----|------------------|-----------------------------------------------|
+| A  | 时间             | 自动计算或 `timeLabel` 参数指定                  |
+| B  | 累计订购总用户    | totalUsers                                    |
+| C  | 新增订购用户      | newAliUsers                                   |
+| D  | 绑店总数量        | newTotalShops                                 |
+| E  | 绑定shopee       | newShopeeShops                                |
+| F  | 绑定Tik Tok      | newTiktokShops                                |
+| G  | 绑店百分率        | **计算：** 绑店总数量 / 新增订购用户              |
+| H  | 新增采集商品数    | newProducts                                    |
+| I  | 新增用户铺货数    | newAliUsersWithDistribute                      |
+| J  | 新增用户铺货率    | **计算：** 新增用户铺货数 / 新增订购用户           |
+| K  | 总铺货数          | **计算：** 铺货成功数 + 铺货失败数                |
+| L  | 铺货成功数        | distributeSuccess7Days                         |
+| M  | 铺货成功率        | **计算：** 铺货成功数 / 总铺货数                  |
+| N  | 铺货失败数        | distributeFail7Days                            |
+| O  | 新增订单量        | orders7Days                                    |
+| P  | 本周情况          | 空列，手动填写                                  |
+
+**参数（两种传参方式互斥，不要同时传）：**
+
+方式一：自定义时间范围
+
+| 参数名    | 类型   | 说明                                       |
+| --------- | ------ | ------------------------------------------ |
+| startTime | string | 查询开始时间（用于SQL 2和SQL 3的动态时间范围） |
+| endTime   | string | 查询结束时间（用于SQL 2和SQL 3的动态时间范围） |
+
+方式二：快速选择时间范围
+
+| 参数名        | 类型   | 说明                                                                          |
+| ------------- | ------ | ----------------------------------------------------------------------------- |
+| timeRangeType | string | 可选值：`LAST_WEEK`（上周）、`LAST_7_DAYS`（近7天）、`LAST_30_DAYS`（近30天）   |
+
+> 注意：`startTime`/`endTime` 与 `timeRangeType` 互斥，只能选择其中一种方式传参。
+
+其他参数：
+
+| 参数名    | 类型   | 说明                                                          |
+| --------- | ------ | ------------------------------------------------------------- |
+| timeLabel | string | 自定义"时间"列显示文本（如 `3.10-3.16`），不传则自动计算         |
+| outputDir | string | 输出目录，默认使用环境变量或当前工作目录                         |
+| fileName  | string | 文件名，默认 `weekly-statistics.xlsx`                          |
+
+**调用示例：**
+
+```bash
+# 生成上周统计（最常用）
+node index.js generateWeeklyStatSheet '{"timeRangeType":"LAST_WEEK"}'
+
+# 自定义时间范围
+node index.js generateWeeklyStatSheet '{"startTime":"2026-03-10","endTime":"2026-03-16"}'
+
+# 自定义时间标签 + 指定输出目录
+node index.js generateWeeklyStatSheet '{"timeRangeType":"LAST_WEEK","timeLabel":"3.10-3.16","outputDir":"D:\\output"}'
+```
+
+**输出文件：** `weekly-statistics.xlsx`（默认文件名，可通过 `fileName` 参数自定义）
+
+**返回示例：**
+
+```json
+{
+  "success": true,
+  "code": 200,
+  "msg": "每周统计表格已更新，数据行：3.10-3.16",
+  "data": {
+    "filePath": "D:\\output\\weekly-statistics.xlsx",
+    "timeLabel": "3.10-3.16"
+  }
+}
+```
+
+---
+
+### querySystemStatistics
+
+查询系统统计数据。返回指定时间范围内的系统运营核心指标，包括用户数、店铺数、采集商品数、铺货情况和订单数等。
+
+**接口：** `GET /statistics/system-statistics`
+
+**参数（两种传参方式互斥，不要同时传）：**
+
+方式一：自定义时间范围
+
+| 参数名    | 类型   | 说明                                       |
+| --------- | ------ | ------------------------------------------ |
+| startTime | string | 查询开始时间（用于SQL 2和SQL 3的动态时间范围） |
+| endTime   | string | 查询结束时间（用于SQL 2和SQL 3的动态时间范围） |
+
+方式二：快速选择时间范围
+
+| 参数名        | 类型   | 说明                                                                          |
+| ------------- | ------ | ----------------------------------------------------------------------------- |
+| timeRangeType | string | 可选值：`LAST_WEEK`（上周）、`LAST_7_DAYS`（近7天）、`LAST_30_DAYS`（近30天）   |
+
+> 注意：`startTime`/`endTime` 与 `timeRangeType` 互斥，只能选择其中一种方式传参。
+
+**调用示例：**
+
+```bash
+# 方式一：自定义时间范围
+node index.js querySystemStatistics '{"startTime":"2026-03-01","endTime":"2026-03-19"}'
+
+# 方式二：快速选择
+node index.js querySystemStatistics '{"timeRangeType":"LAST_WEEK"}'
+```
+
+**返回字段说明：**
+
+| 字段    | 类型    | 说明       |
+| ------- | ------- | ---------- |
+| success | boolean | 成功标识   |
+| code    | integer | 状态码     |
+| msg     | string  | 消息内容   |
+| data    | object  | 数据对象   |
+
+`data`（SystemStatisticsVo）包含：
+
+| 字段                       | 类型    | 说明                              |
+| -------------------------- | ------- | --------------------------------- |
+| totalUsers                 | integer | 总用户数                          |
+| newAliUsers                | integer | 新增1688用户（上周一至本周一）       |
+| newAliUsersWithDistribute  | integer | 新增1688用户（存在铺货记录）        |
+| newShopeeShops             | integer | 新增 Shopee 店铺数量               |
+| newTiktokShops             | integer | 新增 TikTok 店铺数量               |
+| newTotalShops              | integer | 新绑定店铺（Shopee + TikTok）      |
+| newProducts                | integer | 新增采集商品数量                    |
+| distributeSuccess7Days     | integer | 近7天铺货成功数量                   |
+| distributeFail7Days        | integer | 近7天铺货失败数量                   |
+| orders7Days                | integer | 近7天订单数                        |
+
+**返回示例：**
+
+```json
+{
+  "code": 200,
+  "success": true,
+  "msg": "操作成功",
+  "data": {
+    "totalUsers": 1500,
+    "newAliUsers": 32,
+    "newAliUsersWithDistribute": 18,
+    "newShopeeShops": 25,
+    "newTiktokShops": 12,
+    "newTotalShops": 37,
+    "newProducts": 460,
+    "distributeSuccess7Days": 320,
+    "distributeFail7Days": 15,
+    "orders7Days": 188
   }
 }
 ```
