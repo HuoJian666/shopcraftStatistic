@@ -462,6 +462,46 @@ async function querySystemStatistics(params = {}) {
   };
 }
 
+/**
+ * 按用户维度详细统计（客户授权明细）
+ * GET /statistics/user-statistics
+ *
+ * 两种传参方式（互斥，不要同时传）：
+ *   方式一：startTime + endTime  自定义时间范围
+ *   方式二：timeRangeType        快速选择（LAST_WEEK | LAST_7_DAYS | LAST_30_DAYS）
+ *
+ * @param {object} params
+ * @param {string} [params.startTime]     - 查询开始时间
+ * @param {string} [params.endTime]       - 查询结束时间
+ * @param {string} [params.timeRangeType] - 时间范围类型：LAST_WEEK | LAST_7_DAYS | LAST_30_DAYS
+ */
+async function queryUserStatistics(params = {}) {
+  const hasCustomRange = params.startTime || params.endTime;
+  const hasPresetRange = params.timeRangeType;
+  if (hasCustomRange && hasPresetRange) {
+    return {
+      success: false,
+      code: 400,
+      msg: "startTime/endTime 与 timeRangeType 互斥，请只选择一种传参方式",
+      data: null,
+    };
+  }
+
+  const query = {};
+  if (params.startTime) query.startTime = params.startTime;
+  if (params.endTime) query.endTime = params.endTime;
+  if (params.timeRangeType) query.timeRangeType = params.timeRangeType;
+
+  const res = await request("get", "/statistics/user-statistics", query);
+
+  return {
+    success: res.success,
+    code: res.code,
+    msg: res.msg,
+    data: res.data,
+  };
+}
+
 // ======================== Action Registry ========================
 
 const actions = {
@@ -469,6 +509,7 @@ const actions = {
   generateVisitSheet,
   querySystemStatistics,
   generateWeeklyStatSheet,
+  queryUserStatistics,
 };
 
 // ======================== CLI Router ========================

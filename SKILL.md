@@ -1,8 +1,8 @@
 ---
 name: shopcraft-statistic
 description: >
-  店小匠产品统计数据查询技能。支持查询系统统计数据、新增用户（存在店铺绑定）统计数据，
-  生成每周数据统计 Excel 表格，以及生成绑店客户回访 Excel 表格。
+  店小匠产品统计数据查询技能。支持查询系统统计数据、按用户维度详细统计（客户授权明细）、
+  新增用户（存在店铺绑定）统计数据，生成每周数据统计 Excel 表格，以及生成绑店客户回访 Excel 表格。
   可按时间范围筛选，支持自定义起止时间或快速选择（上周、近7天、近30天）。
 version: 1.0.0
 author: lensung
@@ -352,6 +352,91 @@ node index.js querySystemStatistics '{"timeRangeType":"LAST_WEEK"}'
     "distributeFail7Days": 15,
     "orders7Days": 188
   }
+}
+```
+
+---
+
+### queryUserStatistics
+
+按用户维度详细统计（客户授权明细）。返回指定时间范围内每个用户的铺货、店铺绑定、商品采集和订单等维度的详细统计数据。
+
+**接口：** `GET /statistics/user-statistics`
+
+**参数（两种传参方式互斥，不要同时传）：**
+
+方式一：自定义时间范围
+
+| 参数名    | 类型   | 说明                                       |
+| --------- | ------ | ------------------------------------------ |
+| startTime | string | 查询开始时间（用于SQL 2和SQL 3的动态时间范围） |
+| endTime   | string | 查询结束时间（用于SQL 2和SQL 3的动态时间范围） |
+
+方式二：快速选择时间范围
+
+| 参数名        | 类型   | 说明                                                                          |
+| ------------- | ------ | ----------------------------------------------------------------------------- |
+| timeRangeType | string | 可选值：`LAST_WEEK`（上周）、`LAST_7_DAYS`（近7天）、`LAST_30_DAYS`（近30天）   |
+
+> 注意：`startTime`/`endTime` 与 `timeRangeType` 互斥，只能选择其中一种方式传参。
+
+**调用示例：**
+
+```bash
+# 方式一：自定义时间范围
+node index.js queryUserStatistics '{"startTime":"2026-03-01","endTime":"2026-03-19"}'
+
+# 方式二：快速选择
+node index.js queryUserStatistics '{"timeRangeType":"LAST_WEEK"}'
+```
+
+**返回字段说明：**
+
+| 字段    | 类型    | 说明                     |
+| ------- | ------- | ------------------------ |
+| success | boolean | 成功标识                 |
+| code    | integer | 状态码                   |
+| msg     | string  | 消息内容                 |
+| data    | array   | 用户维度统计数据列表       |
+
+`data` 数组中每个元素（UserStatisticsVo）包含：
+
+| 字段                    | 类型    | 说明               |
+| ----------------------- | ------- | ------------------ |
+| userId                  | string  | 用户 ID            |
+| userNickName            | string  | 用户昵称           |
+| userCreateTime          | string  | 用户创建时间       |
+| distributeTaskCount     | integer | 铺货任务数量       |
+| distributeSuccessCount  | integer | 铺货成功次数       |
+| distributeFailCount     | integer | 铺货失败次数       |
+| newShopeeShops          | integer | 新绑定 Shopee 店铺数 |
+| newTiktokShops          | integer | 新绑定 TikTok 店铺数 |
+| newTotalShops           | integer | 新绑定店铺总数     |
+| newProducts             | integer | 新建商品数量       |
+| platformOrderCount      | integer | 平台订单数量       |
+
+**返回示例：**
+
+```json
+{
+  "code": 200,
+  "success": true,
+  "msg": "操作成功",
+  "data": [
+    {
+      "userId": "12345",
+      "userNickName": "用户A",
+      "userCreateTime": "2026-03-10 10:30:00",
+      "distributeTaskCount": 50,
+      "distributeSuccessCount": 42,
+      "distributeFailCount": 8,
+      "newShopeeShops": 3,
+      "newTiktokShops": 1,
+      "newTotalShops": 4,
+      "newProducts": 120,
+      "platformOrderCount": 35
+    }
+  ]
 }
 ```
 
